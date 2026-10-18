@@ -8,10 +8,11 @@ dès que la connexion revient.
 Premier client : Boulangerie de la Paix (Dschang). Le produit est conçu pour être
 revendu à d'autres structures : aucune donnée propre à un client n'est écrite dans le code.
 
-> **État : étape 1 en cours** (squelette de bout en bout : synchronisation, audit,
-> banc de tests). Aucune fonction métier n'est encore disponible.
-> Plan et décisions : [`docs/cadrage/etape-0.md`](docs/cadrage/etape-0.md),
-> [`docs/decisions/`](docs/decisions/).
+> **État : étape 1 terminée** (squelette de bout en bout), en attente de validation.
+> La synchronisation, le journal d'audit et le banc de tests fonctionnent sur une donnée
+> factice (des « notes »). Aucune fonction métier (stocks, caisses...) n'existe encore.
+> Rapport : [`docs/etapes/etape-1.md`](docs/etapes/etape-1.md) ·
+> Décisions : [`docs/decisions/`](docs/decisions/).
 
 ## Architecture en une image
 
@@ -59,6 +60,11 @@ toutes les commandes ci-dessous appellent directement `.\.venv\Scripts\python.ex
 .\.venv\Scripts\python.exe -m pytest
 ```
 
+Environ 300 tests, une minute environ (sans PostgreSQL configuré, les variantes PostgreSQL
+sont sautées : c'est normal). Ils comprennent les tests d'acceptation
+(`tests/acceptance/`) : saisie hors ligne (T08), double synchronisation (T09) et arrêt
+brutal d'un processus en pleine écriture (T17).
+
 Les tests utilisent SQLite. Pour les lancer aussi sur PostgreSQL (facultatif sur un poste
 de développement, systématique dans l'intégration continue) :
 
@@ -75,6 +81,48 @@ Contrôles de qualité (également exécutés automatiquement sur GitHub) :
 .\.venv\Scripts\python.exe -m mypy
 ```
 
+## Essayer : un central et un site sur le même PC
+
+Ouvrir **trois fenêtres PowerShell** dans le dossier `Nkap`.
+
+**Fenêtre 1 — le central** (base SQLite d'essai ; en production ce sera PostgreSQL) :
+
+```powershell
+New-Item -ItemType Directory -Force C:\Nkap\essai | Out-Null
+$env:NKAP_CENTRAL_DATABASE_URL = "sqlite:///C:/Nkap/essai/central.db"
+.\.venv\Scripts\nkap-central.exe migrate
+.\.venv\Scripts\nkap-central.exe register-site --site-id 11111111-1111-4111-8111-111111111111 --company-id 22222222-2222-4222-8222-222222222222 --site-code S01
+# Copier le jeton affiché (nks_...), puis :
+.\.venv\Scripts\nkap-central.exe serve
+```
+
+**Fenêtre 2 — le nœud de site S01** (remplacer `nks_...` par le jeton copié) :
+
+```powershell
+$env:NKAP_SITE_DATABASE_URL = "sqlite:///C:/Nkap/essai/site.db"
+$env:NKAP_SITE_CENTRAL_URL = "http://127.0.0.1:8800"
+$env:NKAP_SITE_SYNC_TOKEN = "nks_..."
+.\.venv\Scripts\nkap-site.exe init --site-id 11111111-1111-4111-8111-111111111111 --company-id 22222222-2222-4222-8222-222222222222 --site-code S01
+.\.venv\Scripts\nkap-site.exe serve
+```
+
+**Fenêtre 3 — saisir et observer** :
+
+```powershell
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8700/api/v1/demo-notes -ContentType "application/json; charset=utf-8" -Body '{"text":"Note de test"}'
+Invoke-RestMethod http://127.0.0.1:8700/api/v1/demo-notes      # sync_status : pending puis synced
+Invoke-RestMethod http://127.0.0.1:8700/api/v1/sync/status
+```
+
+On peut aussi tout essayer dans le navigateur : http://127.0.0.1:8700/docs (site) et
+http://127.0.0.1:8800/docs (central).
+
+Pour voir le mode hors ligne : fermer la fenêtre 1 (Ctrl+C), créer des notes (elles restent
+`pending`, l'état passe à `offline`), relancer `nkap-central.exe serve` : le site renvoie tout
+seul. L'attente entre deux essais grandit pendant une coupure (2 s, 4 s, 8 s... jusqu'à
+5 minutes) ; `Invoke-RestMethod -Method Post http://127.0.0.1:8700/api/v1/sync/run` force
+l'envoi immédiat.
+
 ## Organisation du dépôt
 
 | Dossier | Contenu |
@@ -83,6 +131,7 @@ Contrôles de qualité (également exécutés automatiquement sur GitHub) :
 | `tests/` | Tests automatisés (pytest) |
 | `docs/decisions/` | Décisions d'architecture : la mémoire du projet |
 | `docs/cadrage/` | Cadrage et plan des étapes |
+| `docs/etapes/` | Rapport de fin de chaque étape |
 | `docs/reference/` | Cahier des charges v1.0 et son analyse critique |
 | `BRIEF.md` | Référence du projet (prévaut sur le cahier des charges v1.0) |
 

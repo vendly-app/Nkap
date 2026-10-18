@@ -15,6 +15,7 @@ import pytest
 from sqlalchemy import URL
 
 from nkap.core.clock import FakeClock
+from support.bench import Bench
 from support.db import (
     ENGINES,
     POSTGRES_ADMIN_URL,
@@ -57,3 +58,10 @@ def sqlite_db_url(tmp_path: Path) -> URL:
 def clock() -> FakeClock:
     """Horloge pilotée, fixée au 18 octobre 2026 à 08:00 UTC."""
     return FakeClock(datetime(2026, 10, 18, 8, 0, tzinfo=UTC))
+
+
+@pytest.fixture
+def bench(tmp_path: Path, db_url: URL) -> Iterator[Bench]:
+    """Banc de simulation vide : central sur SQLite puis sur PostgreSQL."""
+    with Bench(tmp_path, central_url=db_url) as b:
+        yield b
