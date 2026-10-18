@@ -1,0 +1,7 @@
+{
+  "error.generic": "Unexpected error.",
+  "event.unknown_type": "Unknown event type: {event_type} (version {payload_version}). The central server must be upgraded before the sites.",
+  "event.entity_mismatch": "Event {event_type} must concern a \"{expected}\" entity, not \"{actual}\".",
+  "event.invalid_payload": "Invalid content for event {event_type}: {details}",
+  "event.float_forbidden": "Floating-point numbers are forbidden in events: use text for decimals."
+}
