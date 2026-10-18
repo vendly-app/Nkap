@@ -1,7 +1,7 @@
 """Notes factices (étape 1) : la plus petite opération qui traverse toute la chaîne.
 
 Créer une note écrit, dans une seule transaction : la note, l'événement
-``DemoNoteCreated`` dans l'outbox (et, à partir de l'incrément 5, la ligne d'audit).
+``DemoNoteCreated`` dans l'outbox, la ligne d'audit et sa réplication (``AuditEntryRecorded``).
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from nkap.core.clock import local_date
 from nkap.core.orm import Actor
-from nkap.events.catalog import DEMO_NOTE_CREATED, DemoNoteCreatedV1
+from nkap.events.catalog import DEMO_NOTE, DEMO_NOTE_CREATED, DemoNoteCreatedV1
 from nkap.site_node.models import SYNC_PENDING, DemoNote
 from nkap.site_node.unit_of_work import SiteUnitOfWork
 
@@ -48,6 +48,12 @@ def create_demo_note(
             entity_version=note.version,
             payload=payload,
             business_date=day,
+        )
+        tx.audit(
+            "demo_note.create",
+            entity_type=DEMO_NOTE,
+            entity_id=note.id,
+            details={"text": note.text, "business_date": day},
         )
     return note
 

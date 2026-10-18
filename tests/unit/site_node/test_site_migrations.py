@@ -15,7 +15,31 @@ from nkap.core.migrations import (
 )
 from nkap.site_node.models import SiteBase
 
-EXPECTED_TABLES = {"node_identity", "site_sequences", "sync_outbox", "demo_notes"}
+EXPECTED_TABLES = {
+    "node_identity",
+    "site_sequences",
+    "sync_outbox",
+    "demo_notes",
+    "audit_log",
+    "audit_chain_head",
+}
+SQLITE_TRIGGERS = {
+    "trg_sync_outbox_immutable",
+    "trg_sync_outbox_no_delete_unacked",
+    "trg_audit_log_no_update",
+    "trg_audit_log_no_delete",
+    "trg_audit_log_chain",
+    "trg_audit_chain_head_forward",
+    "trg_audit_chain_head_no_delete",
+}
+POSTGRES_TRIGGERS = {
+    "trg_sync_outbox_guard",
+    "trg_audit_log_append_only",
+    "trg_audit_log_no_truncate",
+    "trg_audit_log_chain",
+    "trg_audit_chain_head_guard",
+    "trg_audit_chain_head_no_truncate",
+}
 
 
 def _head() -> str:
@@ -72,10 +96,8 @@ def test_migrated_schema_matches_the_models_exactly(db_url: URL) -> None:
 def test_protection_triggers_are_installed(db_url: URL) -> None:
     upgrade_database(SITE_MIGRATIONS, db_url)
     triggers = _triggers(db_url)
-    if db_url.get_backend_name() == "sqlite":
-        assert triggers == {"trg_sync_outbox_immutable", "trg_sync_outbox_no_delete_unacked"}
-    else:
-        assert triggers == {"trg_sync_outbox_guard"}
+    expected = SQLITE_TRIGGERS if db_url.get_backend_name() == "sqlite" else POSTGRES_TRIGGERS
+    assert triggers == expected
 
 
 def test_event_counter_exists_from_installation(db_url: URL) -> None:

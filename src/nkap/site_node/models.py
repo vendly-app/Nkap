@@ -4,6 +4,7 @@
 - ``site_sequences`` : compteurs locaux (``site_seq`` des événements, numéros lisibles).
 - ``sync_outbox`` : file d'envoi des événements vers le central.
 - ``demo_notes`` : données factices de l'étape 1 (une note = un texte).
+- ``audit_log`` / ``audit_chain_head`` : journal d'audit chaîné et sa tête de chaîne.
 """
 
 from __future__ import annotations
@@ -23,6 +24,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
+from nkap.audit.models import AuditChainHeadMixin, AuditLogMixin
 from nkap.core.db_types import UTCDateTime
 from nkap.core.orm import make_metadata
 
@@ -131,6 +133,18 @@ class DemoNote(SyncTrackedMixin, SiteBase):
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime)
     created_by: Mapped[UUID | None] = mapped_column(Uuid)
     version: Mapped[int] = mapped_column(Integer)
+
+
+class SiteAuditLog(AuditLogMixin, SiteBase):
+    """Journal d'audit du site (ajout seul, chaîné, répliqué au central)."""
+
+    __tablename__ = "audit_log"
+    __table_args__ = (Index("ix_audit_log_entity", "entity_type", "entity_id"),)
+
+
+class SiteAuditChainHead(AuditChainHeadMixin, SiteBase):
+    __tablename__ = "audit_chain_head"
+    __table_args__ = (CheckConstraint("id = 1", name="single_row"),)
 
 
 SYNCABLE_ENTITIES: dict[str, type[SyncTrackedMixin]] = {"demo_note": DemoNote}

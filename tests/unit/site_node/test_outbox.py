@@ -15,6 +15,7 @@ from nkap.site_node.demo_notes import create_demo_note, list_demo_notes
 from nkap.site_node.models import OUTBOX_ACKED, DemoNote, OutboxEvent
 from nkap.site_node.outbox import OutboxCorruptedError, envelope_from_outbox_row
 from nkap.site_node.sequences import SYNC_SEQUENCE, current_value
+from nkap.site_node.unit_of_work import MissingAuditError
 from support.events import COMPANY_ID, SITE_A
 from support.site import SiteDb
 
@@ -32,7 +33,7 @@ def test_creating_a_note_writes_the_note_and_its_event(site_db: SiteDb) -> None:
     assert note.sync_status == "pending"
     assert note.business_date == date(2026, 10, 18)  # date du jour à Douala
 
-    [row] = _outbox(site_db)
+    row, audit_row = _outbox(site_db)
     assert row.site_seq == 1
     assert row.status == "pending"
     assert row.attempts == 0
@@ -41,18 +42,26 @@ def test_creating_a_note_writes_the_note_and_its_event(site_db: SiteDb) -> None:
     assert envelope.entity_id == note.id
     assert envelope.site_id == SITE_A
     assert envelope.company_id == COMPANY_ID
-    assert envelope.tx_size == 1
     assert envelope.business_date == note.business_date
     assert envelope.payload == {"text": "Livraison de farine"}
     assert json.loads(row.payload) == envelope.payload
+
+    # Même transaction : la ligne d'audit, répliquée par un second événement.
+    audit = envelope_from_outbox_row(audit_row)
+    assert audit.event_type == "AuditEntryRecorded"
+    assert audit.site_seq == 2
+    assert audit.tx_id == envelope.tx_id
+    assert envelope.tx_size == audit.tx_size == 2
+    assert audit.payload["action"] == "demo_note.create"
+    assert audit.payload["entity_id"] == str(note.id)
 
 
 def test_site_seq_is_contiguous_without_gaps(site_db: SiteDb) -> None:
     for i in range(5):
         create_demo_note(site_db.uow, f"note {i}", actor=SYSTEM)
-    assert [row.site_seq for row in _outbox(site_db)] == [1, 2, 3, 4, 5]
+    assert [row.site_seq for row in _outbox(site_db)] == list(range(1, 11))
     with site_db.factory() as session:
-        assert current_value(session, SYNC_SEQUENCE) == 5
+        assert current_value(session, SYNC_SEQUENCE) == 10
 
 
 def test_a_failed_operation_leaves_no_trace(site_db: SiteDb) -> None:
@@ -75,11 +84,11 @@ def test_a_failed_operation_leaves_no_trace(site_db: SiteDb) -> None:
         fail_after_emit()
 
     assert [n.text for n in list_demo_notes(site_db.factory)] == ["avant"]
-    assert [row.site_seq for row in _outbox(site_db)] == [1]
-    with site_db.factory() as session:
-        assert current_value(session, SYNC_SEQUENCE) == 1  # numéro 2 non consommé
-    create_demo_note(site_db.uow, "après", actor=SYSTEM)
     assert [row.site_seq for row in _outbox(site_db)] == [1, 2]
+    with site_db.factory() as session:
+        assert current_value(session, SYNC_SEQUENCE) == 2  # numéros 3 et 4 non consommés
+    create_demo_note(site_db.uow, "après", actor=SYSTEM)
+    assert [row.site_seq for row in _outbox(site_db)] == [1, 2, 3, 4]
 
 
 def test_invalid_text_is_refused_before_any_write(site_db: SiteDb) -> None:
@@ -98,10 +107,26 @@ def test_several_events_of_one_transaction_share_tx_id(site_db: SiteDb) -> None:
                 entity_version=1,
                 payload=DemoNoteCreatedV1(text=text),
             )
+        tx.audit("demo_note.bulk_create", details={"count": 3})
     envelopes = [envelope_from_outbox_row(row) for row in _outbox(site_db)]
-    assert [e.site_seq for e in envelopes] == [1, 2, 3]
+    assert [e.site_seq for e in envelopes] == [1, 2, 3, 4]
     assert len({e.tx_id for e in envelopes}) == 1
-    assert {e.tx_size for e in envelopes} == {3}
+    assert {e.tx_size for e in envelopes} == {4}
+
+
+def test_a_business_event_without_audit_is_refused(site_db: SiteDb) -> None:
+    def forget_audit() -> None:
+        with site_db.uow.begin(SYSTEM) as tx:
+            tx.emit(
+                DEMO_NOTE_CREATED,
+                entity_id=tx.new_id(),
+                entity_version=1,
+                payload=DemoNoteCreatedV1(text="sans trace"),
+            )
+
+    with pytest.raises(MissingAuditError):
+        forget_audit()
+    assert _outbox(site_db) == []
 
 
 def test_emit_checks_the_payload_type_and_the_transaction_state(site_db: SiteDb) -> None:
@@ -145,7 +170,7 @@ def test_unacknowledged_events_cannot_be_deleted(site_db: SiteDb) -> None:
 
 def test_a_tampered_outbox_row_is_detected(site_db: SiteDb) -> None:
     create_demo_note(site_db.uow, "original", actor=SYSTEM)
-    [row] = _outbox(site_db)
+    row = _outbox(site_db)[0]
     row.payload = '{"text":"falsifié"}'  # modification en mémoire uniquement
     with pytest.raises(OutboxCorruptedError) as exc_info:
         envelope_from_outbox_row(row)

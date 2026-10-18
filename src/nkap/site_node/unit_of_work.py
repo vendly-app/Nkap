@@ -15,7 +15,7 @@ Usage ::
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -24,16 +24,22 @@ from uuid import UUID
 from pydantic import BaseModel
 from sqlalchemy.orm import Session, sessionmaker
 
+from nkap.audit.chain import AuditContent
 from nkap.core.canonical import to_jsonable
 from nkap.core.clock import Clock
 from nkap.core.ids import uuid7
 from nkap.core.orm import Actor
-from nkap.events.catalog import build_registry
+from nkap.events.catalog import AUDIT_ENTRY_RECORDED, AuditEntryRecordedV1, build_registry
 from nkap.events.envelope import EventEnvelope
 from nkap.events.registry import EventDefinition, EventRegistry
+from nkap.site_node.audit_log import append_audit_entry
 from nkap.site_node.identity import NodeIdentity, load_identity
 from nkap.site_node.outbox import outbox_row_from_envelope
 from nkap.site_node.sequences import SYNC_SEQUENCE, allocate
+
+
+class MissingAuditError(RuntimeError):
+    """Erreur de programmation : une opération métier n'a pas été auditée."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -92,11 +98,57 @@ class SiteTransaction:
             _QueuedEvent(definition, entity_id, entity_version, payload, business_date)
         )
 
+    def audit(
+        self,
+        action: str,
+        *,
+        entity_type: str | None = None,
+        entity_id: UUID | None = None,
+        details: Mapping[str, object] | None = None,
+    ) -> AuditContent:
+        """Ajoute une ligne au journal d'audit et programme sa réplication au central."""
+        if self._closed:
+            raise RuntimeError("Transaction déjà terminée : impossible d'auditer.")
+        content, digest = append_audit_entry(
+            self.session,
+            clock=self.clock,
+            identity=self.identity,
+            actor=self.actor,
+            action=action,
+            entity_type=entity_type,
+            entity_id=entity_id,
+            details=details,
+        )
+        self.emit(
+            AUDIT_ENTRY_RECORDED,
+            entity_id=content.audit_id,
+            entity_version=1,
+            payload=AuditEntryRecordedV1(
+                chain_seq=content.chain_seq,
+                occurred_at=content.occurred_at,
+                actor_id=content.actor_id,
+                actor_label=content.actor_label,
+                action=content.action,
+                entity_type=content.entity_type,
+                entity_id=content.entity_id,
+                details=content.details,
+                prev_hash=content.prev_hash,
+                hash=digest,
+            ),
+        )
+        return content
+
     def write_outbox(self) -> list[EventEnvelope]:
         """Numérote les événements programmés et les écrit dans l'outbox."""
         self._closed = True
         if not self._queued:
             return []
+        business = [q for q in self._queued if q.definition is not AUDIT_ENTRY_RECORDED]
+        if business and len(business) == len(self._queued):
+            # Garde-fou : toute modification de données métier laisse une trace d'audit.
+            raise MissingAuditError(
+                "Opération métier sans ligne d'audit : appeler tx.audit() dans la transaction."
+            )
         size = len(self._queued)
         sequence = allocate(self.session, SYNC_SEQUENCE, size)
         tx_id = uuid7(self.clock)
