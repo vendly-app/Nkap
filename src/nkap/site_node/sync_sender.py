@@ -136,6 +136,8 @@ class SyncSender:
                 return self._result(RunStatus.ERROR, sent, acked, exc)
 
             if not batch:
+                if sent:  # le central vient de répondre : pas besoin de l'interroger
+                    return self._result(RunStatus.SYNCED, sent, acked)
                 reopened = self._heartbeat()
                 if isinstance(reopened, SyncRunResult):
                     return reopened
@@ -263,14 +265,19 @@ class SyncSender:
         """Enregistre l'accusé : renvoie (nombre d'acquittés, nombre de renvois programmés)."""
         with self._session_factory.begin() as session:
             now = self._clock.now()
-            acked_rows = cast(
-                CursorResult[Any],
+            # Événements que cet accusé confirme. Le central peut en confirmer au-delà du
+            # lot (déjà reçus lors d'un envoi dont la réponse s'était perdue) : on les
+            # prend tous, pour que leurs données passent bien à « synchronisé ».
+            newly_acked = session.execute(
+                select(OutboxEvent.site_seq, OutboxEvent.entity_type, OutboxEvent.entity_id).where(
+                    OutboxEvent.site_seq <= response.acked_through,
+                    OutboxEvent.status.in_(_UNACKED),
+                )
+            ).all()
+            if newly_acked:
                 session.execute(
                     update(OutboxEvent)
-                    .where(
-                        OutboxEvent.site_seq <= response.acked_through,
-                        OutboxEvent.status.in_(_UNACKED),
-                    )
+                    .where(OutboxEvent.site_seq.in_([row.site_seq for row in newly_acked]))
                     .values(
                         status=OUTBOX_ACKED,
                         acked_at=now,
@@ -278,16 +285,9 @@ class SyncSender:
                         last_error_message=None,
                     ),
                     execution_options=_NO_SYNC,
-                ),
-            ).rowcount
-            _refresh_entities(
-                session,
-                [
-                    (e.entity_type, e.entity_id)
-                    for e in batch
-                    if e.site_seq <= response.acked_through
-                ],
-            )
+                )
+                _refresh_entities(session, [(r.entity_type, r.entity_id) for r in newly_acked])
+            acked_rows = len(newly_acked)
             remaining = [e.site_seq for e in batch if e.site_seq > response.acked_through]
             if remaining:
                 session.execute(
@@ -308,13 +308,12 @@ class SyncSender:
                     ),
                     execution_options=_NO_SYNC,
                 )
+                # Toute la transaction d'origine est bloquée : ses données sont en erreur
+                # (par exemple la note, même si c'est sa ligne d'audit qui est refusée).
+                blocked_tx = {e.tx_id for e in batch if e.site_seq == rejected.site_seq}
                 _refresh_entities(
                     session,
-                    [
-                        (e.entity_type, e.entity_id)
-                        for e in batch
-                        if e.site_seq == rejected.site_seq
-                    ],
+                    [(e.entity_type, e.entity_id) for e in batch if e.tx_id in blocked_tx],
                     status=SYNC_ERROR,
                 )
             reopened = 0

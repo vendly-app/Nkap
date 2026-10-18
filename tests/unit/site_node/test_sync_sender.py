@@ -302,3 +302,29 @@ def test_the_background_worker_synchronizes_on_its_own(env: Env) -> None:
     finally:
         worker.stop()
     assert not worker.running
+
+
+def test_acks_beyond_the_batch_also_mark_their_data_synced(env: Env) -> None:
+    """Régression : le central confirme plus que le lot envoyé (réponse perdue auparavant)."""
+    env.notes(3)
+    env.link.lose_responses = 1
+    assert env.sender(batch_size=6).sync_once().status is RunStatus.OFFLINE  # tout est au central
+    result = env.sender(batch_size=2).sync_once(force=True)  # lot [1, 2], accusé jusqu au n°6
+    assert result.status is RunStatus.SYNCED
+    assert result.acked == 6
+    assert {n.sync_status for n in list_demo_notes(env.site.factory)} == {"synced"}
+    assert env.link.pushes[-1] == [1, 2]
+
+
+def test_a_refused_audit_line_puts_its_note_in_error(tmp_path: Path) -> None:
+    """Régression : si la ligne d'audit est refusée, la note de la même transaction l'est aussi."""
+    handlers = {"DemoNoteCreated": CENTRAL_HANDLERS["DemoNoteCreated"]}
+    for env in _make_env(tmp_path, handlers=handlers):  # central qui ignore AuditEntryRecorded
+        env.notes(2)
+        result = env.sender().sync_once()
+        assert result.status is RunStatus.REJECTED
+        assert sorted(n.sync_status for n in list_demo_notes(env.site.factory)) == [
+            "error",
+            "pending",
+        ]
+        assert env.central.count(CentralDemoNote) == 0  # tout ou rien : la note n'est pas passée
