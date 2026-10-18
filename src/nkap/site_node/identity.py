@@ -7,7 +7,6 @@ pas être « réutilisée » pour un autre site par erreur.
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
@@ -16,18 +15,20 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from sqlalchemy.orm import Session
 
 from nkap.core.errors import NkapError
+from nkap.core.orm import SITE_CODE_PATTERN
 from nkap.site_node.models import NodeIdentityRow
 
-SITE_CODE_PATTERN = re.compile(r"^[A-Z0-9]{2,8}$")
 DEFAULT_TIMEZONE = "Africa/Douala"
 
 
 class NodeNotInitializedError(NkapError):
     default_code = "site.not_initialized"
+    http_status = 503
 
 
 class NodeIdentityMismatchError(NkapError):
     default_code = "site.identity_mismatch"
+    http_status = 409
 
 
 @dataclass(frozen=True, slots=True)

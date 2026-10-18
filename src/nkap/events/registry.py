@@ -56,6 +56,10 @@ class EventRegistry:
             raise UnknownEventError(event_type=event_type, payload_version=payload_version)
         return definition
 
+    def event_types(self) -> set[str]:
+        """Noms de tous les types d'événements enregistrés."""
+        return {name for (name, _version) in self._definitions}
+
     def latest_version(self, event_type: str) -> int:
         versions = [v for (name, v) in self._definitions if name == event_type]
         if not versions:

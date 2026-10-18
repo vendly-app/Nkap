@@ -18,7 +18,8 @@ dependencies = [
     "alembic>=1.18,<2",
     "pydantic>=2.12,<3",
     "pydantic-settings>=2.12,<3",
-    "httpx>=0.28,<1",
+    # Client HTTP (successeur de httpx, attendu par le client de test de Starlette).
+    "httpx2>=2.14,<3",
     "psycopg[binary]>=3.2,<4",
     # Base des fuseaux horaires : indispensable sous Windows (absente du système).
     "tzdata>=2025.2",
@@ -30,6 +31,9 @@ dev = [
     "ruff>=0.15",
     "mypy>=2.0",
 ]
+
+[project.scripts]
+nkap-central = "nkap.central.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/nkap"]

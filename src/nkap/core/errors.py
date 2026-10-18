@@ -9,6 +9,8 @@ class NkapError(Exception):
     """Erreur métier ou technique avec code (ex. ``sync.offline``) et paramètres."""
 
     default_code = "error.generic"
+    http_status = 400
+    """Code HTTP renvoyé par l'API quand cette erreur remonte jusqu'à elle."""
 
     def __init__(self, code: str | None = None, **params: object) -> None:
         self.code = code or self.default_code

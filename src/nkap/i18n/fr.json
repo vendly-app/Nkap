@@ -6,5 +6,17 @@
   "event.float_forbidden": "Nombre à virgule flottante interdit dans un événement : utiliser du texte pour les décimaux.",
   "site.not_initialized": "Ce nœud de site n'est pas encore initialisé (identité du site absente). Lancer « nkap-site init ».",
   "site.identity_mismatch": "Cette base appartient déjà au site {site_code} : impossible de la réutiliser pour un autre site.",
-  "sync.outbox_corrupted": "L'événement n°{site_seq} de la file d'envoi a été modifié depuis sa création : envoi bloqué, prévenir l'administrateur."
+  "sync.outbox_corrupted": "L'événement n°{site_seq} de la file d'envoi a été modifié depuis sa création : envoi bloqué, prévenir l'administrateur.",
+  "request.invalid": "Requête invalide.",
+  "request.too_large": "Requête trop volumineuse.",
+  "auth.invalid_site_token": "Jeton de synchronisation du site absent, invalide ou révoqué.",
+  "auth.site_already_registered": "Le site {site_code} (ou cet identifiant de site) est déjà enregistré.",
+  "auth.site_mismatch": "Un site ne peut envoyer des événements qu'à son propre nom et pour sa propre société.",
+  "sync.batch_not_ordered": "Lot refusé : chaque événement doit figurer une seule fois, dans l'ordre des numéros.",
+  "sync.event_mismatch": "L'événement {event_id} a déjà été reçu avec un contenu différent : anomalie à examiner.",
+  "sync.seq_conflict": "Le numéro d'événement {site_seq} est déjà utilisé par un autre événement : la base du site a peut-être été restaurée depuis une ancienne sauvegarde.",
+  "sync.incomplete_tx": "La transaction qui commence à l'événement n°{site_seq} est incomplète dans ce lot.",
+  "sync.entity_exists": "L'objet {entity_id} existe déjà au central.",
+  "sync.integrity_error": "L'événement n°{site_seq} viole une contrainte de la base centrale.",
+  "audit.chain_broken": "La ligne d'audit n°{chain_seq} ne prolonge pas le journal connu du central : le journal du site a peut-être été altéré."
 }

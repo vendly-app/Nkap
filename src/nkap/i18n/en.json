@@ -6,5 +6,17 @@
   "event.float_forbidden": "Floating-point numbers are forbidden in events: use text for decimals.",
   "site.not_initialized": "This site node is not initialized yet (site identity missing). Run \"nkap-site init\".",
   "site.identity_mismatch": "This database already belongs to site {site_code}: it cannot be reused for another site.",
-  "sync.outbox_corrupted": "Outbox event #{site_seq} was modified after its creation: sending is blocked, alert the administrator."
+  "sync.outbox_corrupted": "Outbox event #{site_seq} was modified after its creation: sending is blocked, alert the administrator.",
+  "request.invalid": "Invalid request.",
+  "request.too_large": "Request too large.",
+  "auth.invalid_site_token": "Site synchronization token missing, invalid or revoked.",
+  "auth.site_already_registered": "Site {site_code} (or this site identifier) is already registered.",
+  "auth.site_mismatch": "A site may only send events in its own name and for its own company.",
+  "sync.batch_not_ordered": "Batch refused: each event must appear once, in sequence order.",
+  "sync.event_mismatch": "Event {event_id} was already received with different content: anomaly to investigate.",
+  "sync.seq_conflict": "Event number {site_seq} is already used by another event: the site database may have been restored from an old backup.",
+  "sync.incomplete_tx": "The transaction starting at event #{site_seq} is incomplete in this batch.",
+  "sync.entity_exists": "Object {entity_id} already exists on the central server.",
+  "sync.integrity_error": "Event #{site_seq} violates a constraint of the central database.",
+  "audit.chain_broken": "Audit entry #{chain_seq} does not extend the log known to the central server: the site log may have been tampered with."
 }

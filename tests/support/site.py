@@ -4,13 +4,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from sqlalchemy import URL, Engine
+from sqlalchemy import URL, Engine, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from nkap.core.clock import Clock
 from nkap.core.db import create_db_engine, make_session_factory
 from nkap.core.migrations import SITE_MIGRATIONS, upgrade_database
+from nkap.events.envelope import EventEnvelope
 from nkap.site_node.identity import NodeIdentity, initialize_identity
+from nkap.site_node.models import OutboxEvent
+from nkap.site_node.outbox import envelope_from_outbox_row
 from nkap.site_node.unit_of_work import SiteUnitOfWork
 from support.events import COMPANY_ID, SITE_A
 
@@ -43,3 +46,10 @@ def open_site_db(
         with factory.begin() as session:
             initialize_identity(session, identity, clock.now())
     return SiteDb(url, engine, factory, SiteUnitOfWork(factory, clock))
+
+
+def site_events(db: SiteDb) -> list[EventEnvelope]:
+    """Tous les événements de l'outbox d'un site, dans l'ordre de ``site_seq``."""
+    with db.factory() as session:
+        rows = session.scalars(select(OutboxEvent).order_by(OutboxEvent.site_seq))
+        return [envelope_from_outbox_row(row) for row in rows]

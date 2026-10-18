@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from uuid import UUID
 
@@ -16,6 +17,10 @@ NAMING_CONVENTION = {
     "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
     "pk": "pk_%(table_name)s",
 }
+
+
+SITE_CODE_PATTERN = re.compile(r"^[A-Z0-9]{2,8}$")
+"""Code court d'un site (ex. ``S01``) : 2 à 8 lettres majuscules ou chiffres."""
 
 
 def make_metadata() -> MetaData:
