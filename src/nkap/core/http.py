@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Sequence
+from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from pydantic import ValidationError
 from starlette.responses import Response
 
 from nkap.core.errors import NkapError
@@ -31,6 +33,14 @@ def error_response(
     )
 
 
+def _invalid(request: Request, errors: Sequence[Any]) -> JSONResponse:
+    details = [
+        f"{'.'.join(str(p) for p in err.get('loc', ()))}: {err.get('msg', '')}" for err in errors
+    ]
+    message = translate("request.invalid", request_locale(request))
+    return error_response(422, "request.invalid", message, details)
+
+
 def install_error_handlers(app: FastAPI) -> None:
     """Toutes les erreurs de l'API ont la même forme : ``{"error": {code, message, details}}``."""
 
@@ -39,13 +49,14 @@ def install_error_handlers(app: FastAPI) -> None:
         return error_response(exc.http_status, exc.code, exc.message(request_locale(request)))
 
     @app.exception_handler(RequestValidationError)
-    async def _validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
-        details = [
-            f"{'.'.join(str(p) for p in err.get('loc', ()))}: {err.get('msg', '')}"
-            for err in exc.errors()
-        ]
-        message = translate("request.invalid", request_locale(request))
-        return error_response(422, "request.invalid", message, details)
+    async def _request_validation_error(
+        request: Request, exc: RequestValidationError
+    ) -> JSONResponse:
+        return _invalid(request, exc.errors())
+
+    @app.exception_handler(ValidationError)
+    async def _validation_error(request: Request, exc: ValidationError) -> JSONResponse:
+        return _invalid(request, exc.errors())
 
     @app.middleware("http")
     async def _limit_body_size(

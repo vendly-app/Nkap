@@ -34,6 +34,7 @@ dev = [
 
 [project.scripts]
 nkap-central = "nkap.central.cli:main"
+nkap-site = "nkap.site_node.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/nkap"]
@@ -57,7 +58,7 @@ select = [
 ignore = ["RUF001", "RUF002", "RUF003"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101", "S603", "S607"]
+"tests/**" = ["S101", "S311", "S603", "S607"]
 # Les migrations assemblent du SQL de structure à partir de constantes (jamais de saisie).
 "src/nkap/*/migrations/**" = ["S608"]
 

@@ -18,5 +18,9 @@
   "sync.incomplete_tx": "The transaction starting at event #{site_seq} is incomplete in this batch.",
   "sync.entity_exists": "Object {entity_id} already exists on the central server.",
   "sync.integrity_error": "Event #{site_seq} violates a constraint of the central database.",
-  "audit.chain_broken": "Audit entry #{chain_seq} does not extend the log known to the central server: the site log may have been tampered with."
+  "audit.chain_broken": "Audit entry #{chain_seq} does not extend the log known to the central server: the site log may have been tampered with.",
+  "sync.offline": "Central server unreachable: operations stay recorded on the site and will be sent when the connection returns.",
+  "sync.refused": "The central server refused the request (HTTP {status}): {reason}",
+  "sync.central_behind": "The central server expects event #{expected}, which this site no longer has: administrator action required.",
+  "sync.disabled": "Synchronization disabled: set NKAP_SITE_CENTRAL_URL and NKAP_SITE_SYNC_TOKEN."
 }

@@ -18,5 +18,9 @@
   "sync.incomplete_tx": "La transaction qui commence à l'événement n°{site_seq} est incomplète dans ce lot.",
   "sync.entity_exists": "L'objet {entity_id} existe déjà au central.",
   "sync.integrity_error": "L'événement n°{site_seq} viole une contrainte de la base centrale.",
-  "audit.chain_broken": "La ligne d'audit n°{chain_seq} ne prolonge pas le journal connu du central : le journal du site a peut-être été altéré."
+  "audit.chain_broken": "La ligne d'audit n°{chain_seq} ne prolonge pas le journal connu du central : le journal du site a peut-être été altéré.",
+  "sync.offline": "Central injoignable : les opérations restent enregistrées sur le site et seront envoyées au retour de la connexion.",
+  "sync.refused": "Le central a refusé la requête (HTTP {status}) : {reason}",
+  "sync.central_behind": "Le central attend l'événement n°{expected}, que ce site ne possède plus : intervention de l'administrateur nécessaire.",
+  "sync.disabled": "Synchronisation désactivée : renseigner NKAP_SITE_CENTRAL_URL et NKAP_SITE_SYNC_TOKEN."
 }

@@ -5,6 +5,7 @@
 - ``sync_outbox`` : file d'envoi des événements vers le central.
 - ``demo_notes`` : données factices de l'étape 1 (une note = un texte).
 - ``audit_log`` / ``audit_chain_head`` : journal d'audit chaîné et sa tête de chaîne.
+- ``sync_state`` : état de la liaison avec le central (une seule ligne).
 """
 
 from __future__ import annotations
@@ -145,6 +146,28 @@ class SiteAuditLog(AuditLogMixin, SiteBase):
 class SiteAuditChainHead(AuditChainHeadMixin, SiteBase):
     __tablename__ = "audit_chain_head"
     __table_args__ = (CheckConstraint("id = 1", name="single_row"),)
+
+
+class SyncStateRow(SiteBase):
+    """État de la synchronisation avec le central (affiché à l'écran Synchronisation)."""
+
+    __tablename__ = "sync_state"
+    __table_args__ = (
+        CheckConstraint("id = 1", name="single_row"),
+        CheckConstraint("consecutive_failures >= 0", name="failures_non_negative"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=False)
+    last_attempt_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
+    last_success_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
+    offline_since: Mapped[datetime | None] = mapped_column(UTCDateTime)
+    consecutive_failures: Mapped[int] = mapped_column(Integer)
+    next_attempt_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
+    last_error_code: Mapped[str | None] = mapped_column(String(64))
+    last_error_message: Mapped[str | None] = mapped_column(Text)
+    central_acked_through: Mapped[int] = mapped_column(BigInteger)
+    last_server_time: Mapped[datetime | None] = mapped_column(UTCDateTime)
+    clock_offset_ms: Mapped[int | None] = mapped_column(BigInteger)
 
 
 SYNCABLE_ENTITIES: dict[str, type[SyncTrackedMixin]] = {"demo_note": DemoNote}

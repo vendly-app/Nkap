@@ -22,6 +22,7 @@ EXPECTED_TABLES = {
     "demo_notes",
     "audit_log",
     "audit_chain_head",
+    "sync_state",
 }
 SQLITE_TRIGGERS = {
     "trg_sync_outbox_immutable",
