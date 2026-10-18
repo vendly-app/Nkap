@@ -64,7 +64,8 @@ plugins = ["pydantic.mypy"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra --strict-markers"
+pythonpath = ["tests"]
+addopts = "-ra --strict-markers --import-mode=importlib"
 markers = [
     "slow: test lent (processus tués, gros volumes)",
 ]
