@@ -3,5 +3,8 @@
   "event.unknown_type": "Type d'événement inconnu : {event_type} (version {payload_version}). Le central doit être mis à jour avant les sites.",
   "event.entity_mismatch": "L'événement {event_type} doit concerner une entité « {expected} », pas « {actual} ».",
   "event.invalid_payload": "Contenu de l'événement {event_type} invalide : {details}",
-  "event.float_forbidden": "Nombre à virgule flottante interdit dans un événement : utiliser du texte pour les décimaux."
+  "event.float_forbidden": "Nombre à virgule flottante interdit dans un événement : utiliser du texte pour les décimaux.",
+  "site.not_initialized": "Ce nœud de site n'est pas encore initialisé (identité du site absente). Lancer « nkap-site init ».",
+  "site.identity_mismatch": "Cette base appartient déjà au site {site_code} : impossible de la réutiliser pour un autre site.",
+  "sync.outbox_corrupted": "L'événement n°{site_seq} de la file d'envoi a été modifié depuis sa création : envoi bloqué, prévenir l'administrateur."
 }

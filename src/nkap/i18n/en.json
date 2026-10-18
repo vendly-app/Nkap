@@ -3,5 +3,8 @@
   "event.unknown_type": "Unknown event type: {event_type} (version {payload_version}). The central server must be upgraded before the sites.",
   "event.entity_mismatch": "Event {event_type} must concern a \"{expected}\" entity, not \"{actual}\".",
   "event.invalid_payload": "Invalid content for event {event_type}: {details}",
-  "event.float_forbidden": "Floating-point numbers are forbidden in events: use text for decimals."
+  "event.float_forbidden": "Floating-point numbers are forbidden in events: use text for decimals.",
+  "site.not_initialized": "This site node is not initialized yet (site identity missing). Run \"nkap-site init\".",
+  "site.identity_mismatch": "This database already belongs to site {site_code}: it cannot be reused for another site.",
+  "sync.outbox_corrupted": "Outbox event #{site_seq} was modified after its creation: sending is blocked, alert the administrator."
 }
