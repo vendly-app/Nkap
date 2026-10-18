@@ -1,6 +1,20 @@
 # Étape 0 — Cadrage
 
-Statut : **en attente du feu vert de Roosevelt.** Aucun code applicatif n'est écrit avant.
+Statut : **validé par Roosevelt le 2026-10-18 (« Go »).** L'étape 1 est lancée.
+
+## Réponses reçues
+
+| Question | Réponse | Conséquence |
+|---|---|---|
+| 1. Protocole git | « Go » sur la proposition P1 | Claude pousse sur la branche `ccr-0269e16a-nbri2p` ; Roosevelt relit et fusionne par pull request |
+| 2. Produit ou client | Demande d'un client : **Boulangerie de la Paix (Dschang)**, avec l'objectif de revendre le logiciel à d'autres structures | Décision 003 : rien de propre au client dans le code, une installation par client |
+| 3. Durée hors ligne | Pas de réponse : valeur par défaut | 7 jours en exploitation, 30 jours testés |
+| 4. Matériel des nœuds | Pas de réponse : valeur par défaut | Un PC Windows dédié par site, avec onduleur |
+| 5. Serveur central | Pas de réponse : valeur par défaut | Central hébergé ; simulé en local à l'étape 1 ; à trancher avant l'étape 2 |
+
+Nouveau point soulevé par la réponse 2 (décision 003) : la fabrication (recettes),
+les produits périssables et les ventes au comptoir ne figurent pas dans le cahier des
+charges v1.0. À cadrer avec le client avant l'étape 3.
 
 Sources lues : `BRIEF.md`, `docs/reference/cahier-des-charges-v1.0.pdf` (5 pages, scan),
 `docs/reference/analyse-critique-cdc-v1.0.md`.
@@ -61,7 +75,7 @@ politique de caisse (étape 5), reprise de données initiale (étape 3), inventa
 ```
 Nkap/
 ├── BRIEF.md, CLAUDE.md, README.md, .env.example, pyproject.toml
-├── docs/decisions/            # ADR 001 à 007 (ci-dessous)
+├── docs/decisions/            # ADR 001 à 008 (ci-dessous)
 ├── src/nkap/
 │   ├── core/                  # horloge injectable, UUID, types Money/Quantity, erreurs
 │   ├── events/                # enveloppe d'événement + schémas Pydantic versionnés
@@ -80,15 +94,18 @@ Le client PySide6 arrive à l'étape 2.
 
 ### 4.2 Décisions à consigner (`docs/decisions/`)
 
+Numérotation définitive (dans l'ordre où les décisions sont consignées) :
+
 | N° | Décision |
 |---|---|
 | 001 | Topologie : nœud de site écrivain unique, postes clients légers, central hébergé |
 | 002 | Propriété des données (tableau du brief § 3.3) |
-| 003 | Protocole de synchronisation : enveloppe d'événement, `site_seq`, lots atomiques, accusés, détection de trous |
+| 003 | Produit revendable : rien de propre au client dans le code, une installation par client |
 | 004 | Identifiants : UUID générés localement (UUIDv7, triés dans le temps, meilleurs pour les index) ; numéros lisibles `TRF-S02-2026-000001` |
 | 005 | Types : montants en entiers, quantités en `Decimal` via `TypeDecorator`, aucun `float` |
 | 006 | Deux jeux de migrations Alembic (site / central) |
 | 007 | Journal d'audit chaîné par SHA-256 et protégé par déclencheurs |
+| 008 | Protocole de synchronisation : enveloppe d'événement, `site_seq`, lots atomiques, accusés, détection de trous |
 
 ### 4.3 Incréments (un commit chacun, tests compris)
 
@@ -106,7 +123,7 @@ Le client PySide6 arrive à l'étape 2.
    - **T17** : processus du site tué pendant une transaction et pendant un envoi → `PRAGMA integrity_check` OK, rien à moitié appliqué, l'envoi reprend seul.
    - En plus : trou de `site_seq` détecté et comblé ; deux sites hors ligne en parallèle sans collision d'identifiant (prépare T07) ; horloge du site décalée de ±2 jours sans effet sur l'ordre (prépare T19).
 
-**Livrables en fin d'étape :** code, tests, migrations, ADR 001-007, README, résumé en 5 lignes, commandes PowerShell exactes.
+**Livrables en fin d'étape :** code, tests, migrations, ADR 001-008, README, résumé en 5 lignes, commandes PowerShell exactes.
 
 **Durée indicative :** 1 à 2 semaines de travail effectif, découpées en 9 commits.
 

@@ -1,0 +1,33 @@
+# Environnements et caches Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Secrets et configuration locale : jamais versionnés
+.env
+.env.*
+!.env.example
+
+# Bases de données locales et sauvegardes
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+data/
+backups/
+
+# Éditeurs
+.vscode/
+.idea/
+*.swp

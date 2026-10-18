@@ -1,0 +1,12 @@
+Copyright (c) 2026 Baobab Labs. Tous droits réservés.
+
+Ce logiciel, son code source et sa documentation sont la propriété exclusive
+de Baobab Labs. Toute reproduction, diffusion, modification ou utilisation,
+totale ou partielle, sans autorisation écrite préalable de Baobab Labs est
+interdite.
+
+Les clients de Baobab Labs utilisent le logiciel dans le cadre de la licence
+d'utilisation prévue par leur contrat.
+
+Les composants tiers utilisés par ce logiciel restent soumis à leurs propres
+licences (notamment PySide6, sous LGPLv3).

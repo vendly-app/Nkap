@@ -1,0 +1,71 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "nkap"
+version = "0.1.0"
+description = "Gestion intégrée multi-sites hors connexion : stocks, transferts, caisses, comptabilité"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+license = "LicenseRef-Proprietary"
+license-files = ["LICENSE"]
+authors = [{ name = "Baobab Labs" }]
+dependencies = [
+    "fastapi>=0.140,<1",
+    "uvicorn>=0.50,<1",
+    "sqlalchemy>=2.1,<2.2",
+    "alembic>=1.18,<2",
+    "pydantic>=2.12,<3",
+    "pydantic-settings>=2.12,<3",
+    "httpx>=0.28,<1",
+    "psycopg[binary]>=3.2,<4",
+    # Base des fuseaux horaires : indispensable sous Windows (absente du système).
+    "tzdata>=2025.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=9,<10",
+    "ruff>=0.15",
+    "mypy>=2.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/nkap"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W", "F",   # erreurs de base
+    "I",             # ordre des imports
+    "B",             # pièges courants
+    "UP",            # syntaxe Python moderne
+    "S",             # sécurité (bandit)
+    "DTZ",           # interdit les dates sans fuseau horaire
+    "SIM", "C4", "RUF", "PT",
+]
+# Textes en français : apostrophes et guillemets typographiques autorisés.
+ignore = ["RUF001", "RUF002", "RUF003"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S603", "S607"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+mypy_path = "src"
+packages = ["nkap"]
+plugins = ["pydantic.mypy"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = [
+    "slow: test lent (processus tués, gros volumes)",
+]
+filterwarnings = ["error"]

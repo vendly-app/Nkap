@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  # Linux : qualité du code + tests sur SQLite ET PostgreSQL.
+  linux:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      NKAP_TEST_POSTGRES_URL: postgresql+psycopg://postgres:postgres@localhost:5432/postgres
+      # En CI, l'absence de PostgreSQL doit faire échouer les tests, pas les sauter.
+      NKAP_REQUIRE_POSTGRES: "1"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Installation
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+      - name: Style (ruff)
+        run: |
+          ruff check .
+          ruff format --check .
+      - name: Typage (mypy)
+        run: mypy
+      - name: Tests
+        run: pytest
+
+  # Windows : la cible réelle du produit. Tests sur SQLite.
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Installation
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+      - name: Tests
+        run: pytest
